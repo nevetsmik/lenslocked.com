@@ -14,14 +14,18 @@ func home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	data := struct{ Name string }{Name: "Steve"}
 	// Execute a template name homeView.Layout ("bootstrap") writing the results to w and passing data
-	if err := homeView.Template.ExecuteTemplate(w, homeView.Layout, data); err != nil {
-		panic(err)
-	}
+	must(homeView.Render(w, data))
+
 }
 
 func contact(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	if err := contactView.Template.ExecuteTemplate(w, contactView.Layout, nil); err != nil {
+	must(contactView.Render(w, nil))
+}
+
+// A helper function that panics on any error
+func must(err error) {
+	if err != nil {
 		panic(err)
 	}
 }

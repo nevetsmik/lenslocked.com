@@ -16,7 +16,6 @@ var (
 	TemplateExt string = ".gohtml"
 )
 
-
 // files is a variadic parameter that can accept 0...n arguments; files is treated as a slice in the NewView function
 // ewView(someSlice...) to unravel the items in slice when invoking a variadic function
 func NewView(layout string, files ...string) *View {
@@ -46,4 +45,3 @@ func layoutFiles() []string {
 func (v *View) Render(w http.ResponseWriter, data interface{}) error {
 	return v.Template.ExecuteTemplate(w, v.Layout, data)
 }
-

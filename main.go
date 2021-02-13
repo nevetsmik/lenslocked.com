@@ -1,8 +1,9 @@
 package main
 
 import (
-	"lenslocked.com/views"
 	"net/http"
+
+	"lenslocked.com/views"
 
 	"github.com/gorilla/mux"
 )
@@ -15,7 +16,6 @@ func home(w http.ResponseWriter, r *http.Request) {
 	data := struct{ Name string }{Name: "Steve"}
 	// Execute a template name homeView.Layout ("bootstrap") writing the results to w and passing data
 	must(homeView.Render(w, data))
-
 }
 
 func contact(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +32,7 @@ func must(err error) {
 
 func main() {
 	// Pass the name of the layout to use and specify the view to parse
-	homeView = views.NewView("bootstrap","views/home.gohtml")
+	homeView = views.NewView("bootstrap", "views/home.gohtml")
 	contactView = views.NewView("bootstrap", "views/contact.gohtml")
 
 	r := mux.NewRouter()

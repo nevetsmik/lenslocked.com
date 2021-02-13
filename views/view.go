@@ -13,22 +13,24 @@ type View struct {
 
 var (
 	LayoutDir   string = "views/layouts/"
+	TemplateDir string = "views/"
 	TemplateExt string = ".gohtml"
 )
 
 // files is a variadic parameter that can accept 0...n arguments; files is treated as a slice in the NewView function
-// ewView(someSlice...) to unravel the items in slice when invoking a variadic function
+// NewView(someSlice...) to unravel the items in slice when invoking a variadic function
 func NewView(layout string, files ...string) *View {
-	files = append(files,
-		layoutFiles()...)
+	addTemplatePath(files)
+	addTemplateExt(files)
+	files = append(files, layoutFiles()...)
 	t, err := template.ParseFiles(files...)
 	if err != nil {
 		panic(err)
 	}
 
 	return &View{
-		Layout:   layout,
 		Template: t,
+		Layout:   layout,
 	}
 }
 
@@ -43,5 +45,36 @@ func layoutFiles() []string {
 
 // Abstract away Template.ExecuteTemplate
 func (v *View) Render(w http.ResponseWriter, data interface{}) error {
+	w.Header().Set("Content-Type", "text/html")
 	return v.Template.ExecuteTemplate(w, v.Layout, data)
+}
+
+func (v *View) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if err := v.Render(w, nil); err != nil {
+		panic(err)
+	}
+}
+
+// addTemplatePath takes in a slice of strings
+// representing file paths for templates, and it prepends
+// the TemplateDir directory to each string in the slice
+//
+// Eg the input {"home"} would result in the output
+// {"views/home"} if TemplateDir == "views/"
+func addTemplatePath(files []string) {
+	for i, f := range files {
+		files[i] = TemplateDir + f
+	}
+}
+
+// addTemplateExt takes in a slice of strings
+// representing file paths for templates and it appends
+// the TemplateExt extension to each string in the slice
+//
+// Eg the input {"home"} would result in the output
+// {"home.gohtml"} if TemplateExt == ".gohtml"
+func addTemplateExt(files []string) {
+	for i, f := range files {
+		files[i] = f + TemplateExt
+	}
 }

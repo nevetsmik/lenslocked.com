@@ -4,132 +4,56 @@ import (
 	"errors"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/jinzhu/gorm"
-
 	"lenslocked.com/hash"
+	"lenslocked.com/interfaces"
 	"lenslocked.com/models"
-	"lenslocked.com/rand"
 )
 
-type UserService struct {
-	db   *gorm.DB
-	hmac hash.HMAC
+// Top level service layer for users; implements userServiceInt
+
+// Embeds a UserDB interface
+type userService struct {
+	interfaces.UserDBInt
 }
 
 var (
-	ErrNotFound        = errors.New("models: resource not found")
-	ErrInvalidID       = errors.New("models: ID provided was invalid")
-	ErrInvalidPassword = errors.New("models: incorrect password provided")
+	ErrNotFound          = errors.New("models: resource not found")
+	ErrIDInvalid         = errors.New("models: ID provided was invalid")
+	ErrPasswordIncorrect = errors.New("models: incorrect password provided")
+	ErrEmailRequired     = errors.New("models: email address is required")
+	ErrEmailInvalid      = errors.New("models: email address is not valid")
+	ErrEmailTaken        = errors.New("models: email address is already taken")
+	ErrPasswordTooShort  = errors.New("models: password must be at least 8 characters long")
+	ErrPasswordRequired  = errors.New("models: password is required")
+	ErrRememberRequired  = errors.New("models: remember token is required")
+	ErrRememberTooShort  = errors.New("models: remember token must be at least 32 bytes")
 )
 
 var userPwPepper = "secret-random-string"
 var hmacSecretKey = "secret-hmac-key"
 
-func NewUserService(connectionInfo string) (*UserService, error) {
-	db, err := gorm.Open("postgres", connectionInfo)
+func NewUserService(connectionInfo string) (*userService, error) {
+	ug, err := NewUserGorm(connectionInfo)
 	if err != nil {
 		return nil, err
 	}
-	db.LogMode(true)
 	hmac := hash.NewHMAC(hmacSecretKey)
-	return &UserService{
-		db:   db,
-		hmac: hmac,
+	// https://eli.thegreenplace.net/2020/embedding-in-go-part-3-interfaces-in-structs/
+	// UserDBInt field for UserValidator is initialized to ug, a userGorm service (struct) that implements the UserDBInt interface.
+	// userService embeds the UserDBInt interface and instantiates uv, a userValidator service (struct)
+	// with UserDBInt forwarded methods from the UserDBInt: ug initialization
+	//uv := &UserValidator{
+	//	hmac:      hmac,
+	//	UserDBInt: ug,
+	//}
+	uv := NewUserValidator(ug, hmac)
+	return &userService{
+		UserDBInt: uv,
 	}, nil
 }
 
-func (us *UserService) Close() error {
-	return us.db.Close()
-}
-
-func (us *UserService) ByID(id uint) (*models.User, error) {
-	var user models.User
-	db := us.db.Where("id = ?", id)
-	err := first(db, &user)
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
-}
-
-func (us *UserService) ByEmail(email string) (*models.User, error) {
-	var user models.User
-	db := us.db.Where("email = ?", email)
-	err := first(db, &user)
-	return &user, err
-}
-
-func (us *UserService) ByRemember(token string) (*models.User, error) {
-	var user models.User
-	rememberHash := us.hmac.Hash(token)
-	err := first(us.db.Where("remember_hash = ?", rememberHash), &user)
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
-}
-
-func first(db *gorm.DB, dst interface{}) error {
-	err := db.First(dst).Error
-	if err == gorm.ErrRecordNotFound {
-		return ErrNotFound
-	}
-	return err
-}
-
-func (us *UserService) Create(user *models.User) error {
-	pwBytes := []byte(user.Password + userPwPepper)
-	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	user.PasswordHash = string(hashedBytes)
-	user.Password = ""
-
-	if user.Remember == "" {
-		token, err := rand.RememberToken()
-		if err != nil {
-			return err
-		}
-		user.Remember = token
-	}
-	user.RememberHash = us.hmac.Hash(user.Remember)
-
-	return us.db.Create(user).Error
-}
-
-func (us *UserService) Update(user *models.User) error {
-	if user.Remember != "" {
-		user.RememberHash = us.hmac.Hash(user.Remember)
-	}
-	return us.db.Save(user).Error
-}
-
-func (us *UserService) Delete(id uint) error {
-	if id == 0 {
-		return ErrInvalidID
-	}
-	user := models.User{Model: gorm.Model{ID: id}}
-	return us.db.Delete(&user).Error
-}
-
-func (us *UserService) AutoMigrate() error {
-	if err := us.db.AutoMigrate(&models.User{}).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (us *UserService) DestructiveReset() error {
-	err := us.db.DropTableIfExists(&models.User{}).Error
-	if err != nil {
-		return err
-	}
-	return us.AutoMigrate()
-}
-
-func (us *UserService) Authenticate(email, password string) (*models.User, error) {
-	foundUser, err := us.ByEmail(email)
+func (us *userService) Authenticate(email, password string) (*models.User, error) {
+	foundUser, err := us.UserDBInt.ByEmail(email)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +65,7 @@ func (us *UserService) Authenticate(email, password string) (*models.User, error
 	case nil:
 		return foundUser, nil
 	case bcrypt.ErrMismatchedHashAndPassword:
-		return nil, ErrInvalidPassword
+		return nil, ErrPasswordIncorrect
 	default:
 		return nil, err
 	}

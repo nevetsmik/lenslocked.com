@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/schema"
 
+	"lenslocked.com/interfaces"
 	"lenslocked.com/models"
 	"lenslocked.com/rand"
 	"lenslocked.com/services"
@@ -23,7 +24,7 @@ var (
 type Users struct {
 	NewView   *views.View
 	LoginView *views.View
-	us        *services.UserService
+	us        interfaces.UserServiceInt
 }
 
 // Struct tags are metadata that can be added to fields of any struct
@@ -39,7 +40,7 @@ type LoginForm struct {
 	Password string `schema:"password"`
 }
 
-func NewUsers(us *services.UserService) *Users {
+func NewUsers(us interfaces.UserServiceInt) *Users {
 	return &Users{
 		NewView:   views.NewView("bootstrap", "users/new"),
 		LoginView: views.NewView("bootstrap", "users/login"),
@@ -89,7 +90,7 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case services.ErrNotFound:
 			fmt.Fprintln(w, "Invalid email address.")
-		case services.ErrInvalidPassword:
+		case services.ErrPasswordIncorrect:
 			fmt.Fprintln(w, "Invalid password provided.")
 		default:
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -104,6 +105,7 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/cookietest", http.StatusFound)
 }
 
+// signIn is used to sign the given user in via cookies
 func (u *Users) signIn(w http.ResponseWriter, user *models.User) error {
 	if user.Remember == "" {
 		token, err := rand.RememberToken()

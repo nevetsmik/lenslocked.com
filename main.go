@@ -30,7 +30,7 @@ func main() {
 	r := mux.NewRouter()
 	// staticC returns a struct of View structs.
 	// Handle takes a path, and a http.Handler object.
-	// Since View has a ServeHTTP method and implements the http.Handler interface, so the View type can be passed as
+	// Since View has a ServeHTTP method and implements the http.Handler interfaces, so the View type can be passed as
 	// as http.Handler object
 	r.Handle("/", staticC.Home).Methods("GET")
 	r.Handle("/contact", staticC.Contact).Methods("GET")

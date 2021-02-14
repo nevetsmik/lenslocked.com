@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/jinzhu/gorm"
 
@@ -13,9 +14,12 @@ type UserService struct {
 }
 
 var (
-	ErrNotFound  = errors.New("models: resource not found")
-	ErrInvalidID = errors.New("models: ID provided was invalid")
+	ErrNotFound        = errors.New("models: resource not found")
+	ErrInvalidID       = errors.New("models: ID provided was invalid")
+	ErrInvalidPassword = errors.New("models: incorrect password provided")
 )
+
+var userPwPepper = "secret-random-string"
 
 func NewUserService(connectionInfo string) (*UserService, error) {
 	db, err := gorm.Open("postgres", connectionInfo)
@@ -58,6 +62,13 @@ func first(db *gorm.DB, dst interface{}) error {
 }
 
 func (us *UserService) Create(user *models.User) error {
+	pwBytes := []byte(user.Password + userPwPepper)
+	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.PasswordHash = string(hashedBytes)
+	user.Password = ""
 	return us.db.Create(user).Error
 }
 
@@ -86,4 +97,23 @@ func (us *UserService) DestructiveReset() error {
 		return err
 	}
 	return us.AutoMigrate()
+}
+
+func (us *UserService) Authenticate(email, password string) (*models.User, error) {
+	foundUser, err := us.ByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(foundUser.PasswordHash),
+		[]byte(password+userPwPepper))
+	switch err {
+	case nil:
+		return foundUser, nil
+	case bcrypt.ErrMismatchedHashAndPassword:
+		return nil, ErrInvalidPassword
+	default:
+		return nil, err
+	}
 }

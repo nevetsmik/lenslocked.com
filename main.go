@@ -1,16 +1,31 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
 
 	"lenslocked.com/controllers"
+	"lenslocked.com/dbConfig"
+	"lenslocked.com/services"
 )
 
 func main() {
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable",
+		dbConfig.Host, dbConfig.Port, dbConfig.User, dbConfig.Dbname)
+
+	us, err := services.NewUserService(psqlInfo)
+	if err != nil {
+		panic(err)
+	}
+	defer us.Close()
+	us.AutoMigrate()
+	//us.DestructiveReset()
+
 	staticC := controllers.NewStatic()
-	usersC := controllers.NewUsers()
+	usersC := controllers.NewUsers(us)
 
 	r := mux.NewRouter()
 	// staticC returns a struct of View structs.

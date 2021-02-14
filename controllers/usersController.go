@@ -6,6 +6,8 @@ import (
 
 	"github.com/gorilla/schema"
 
+	"lenslocked.com/models"
+	"lenslocked.com/services"
 	"lenslocked.com/views"
 )
 
@@ -15,23 +17,28 @@ var (
 	TemplateExt string = ".gohtml"
 )
 
-
+// Users is the type for the usersController
+// The users model is accessed through the userService
 type Users struct {
 	NewView *views.View
+	us      *services.UserService
 }
 
 // Struct tags are metadata that can be added to fields of any struct
 // gorilla/schema package unmarshals JSON into a struct
 type SignupForm struct {
+	Name     string `schema:"name"`
 	Email    string `schema:"email"`
 	Password string `schema:"password"`
 }
 
-func NewUsers() *Users {
+func NewUsers(us *services.UserService) *Users {
 	return &Users{
 		NewView: views.NewView("bootstrap", "users/new"),
+		us:      us,
 	}
 }
+
 // GET /signup
 func (u *Users) New(w http.ResponseWriter, r *http.Request) {
 	if err := u.NewView.Render(w, nil); err != nil {
@@ -45,8 +52,15 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 	if err := parseForm(r, &form); err != nil {
 		panic(err)
 	}
-	fmt.Fprintln(w, "Email is", form.Email)
-	fmt.Fprintln(w, "Password is", form.Password)
+	user := models.User{
+		Name:  form.Name,
+		Email: form.Email,
+	}
+	if err := u.us.Create(&user); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintln(w, "User is", user)
 }
 
 func parseForm(r *http.Request, dst interface{}) error {
@@ -60,7 +74,3 @@ func parseForm(r *http.Request, dst interface{}) error {
 	}
 	return nil
 }
-
-
-
-

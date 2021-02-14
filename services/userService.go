@@ -6,11 +6,14 @@ import (
 
 	"github.com/jinzhu/gorm"
 
+	"lenslocked.com/hash"
 	"lenslocked.com/models"
+	"lenslocked.com/rand"
 )
 
 type UserService struct {
-	db *gorm.DB
+	db   *gorm.DB
+	hmac hash.HMAC
 }
 
 var (
@@ -20,6 +23,7 @@ var (
 )
 
 var userPwPepper = "secret-random-string"
+var hmacSecretKey = "secret-hmac-key"
 
 func NewUserService(connectionInfo string) (*UserService, error) {
 	db, err := gorm.Open("postgres", connectionInfo)
@@ -27,8 +31,10 @@ func NewUserService(connectionInfo string) (*UserService, error) {
 		return nil, err
 	}
 	db.LogMode(true)
+	hmac := hash.NewHMAC(hmacSecretKey)
 	return &UserService{
-		db: db,
+		db:   db,
+		hmac: hmac,
 	}, nil
 }
 
@@ -53,6 +59,16 @@ func (us *UserService) ByEmail(email string) (*models.User, error) {
 	return &user, err
 }
 
+func (us *UserService) ByRemember(token string) (*models.User, error) {
+	var user models.User
+	rememberHash := us.hmac.Hash(token)
+	err := first(us.db.Where("remember_hash = ?", rememberHash), &user)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func first(db *gorm.DB, dst interface{}) error {
 	err := db.First(dst).Error
 	if err == gorm.ErrRecordNotFound {
@@ -69,10 +85,23 @@ func (us *UserService) Create(user *models.User) error {
 	}
 	user.PasswordHash = string(hashedBytes)
 	user.Password = ""
+
+	if user.Remember == "" {
+		token, err := rand.RememberToken()
+		if err != nil {
+			return err
+		}
+		user.Remember = token
+	}
+	user.RememberHash = us.hmac.Hash(user.Remember)
+
 	return us.db.Create(user).Error
 }
 
 func (us *UserService) Update(user *models.User) error {
+	if user.Remember != "" {
+		user.RememberHash = us.hmac.Hash(user.Remember)
+	}
 	return us.db.Save(user).Error
 }
 

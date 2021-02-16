@@ -10,7 +10,6 @@ import (
 	"lenslocked.com/interfaces"
 	"lenslocked.com/models"
 	"lenslocked.com/rand"
-	"lenslocked.com/services"
 	"lenslocked.com/views"
 )
 
@@ -100,7 +99,7 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := u.us.Authenticate(form.Email, form.Password)
 	if err != nil {
 		switch err {
-		case services.ErrNotFound:
+		case models.ErrNotFound:
 			vd.AlertError("No user exists with that email address")
 		default:
 			vd.SetAlert(err)

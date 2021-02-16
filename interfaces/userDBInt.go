@@ -25,11 +25,4 @@ type UserDBInt interface {
 	Create(user *models.User) error
 	Update(user *models.User) error
 	Delete(id uint) error
-
-	// Used to close a DB connection
-	Close() error
-
-	// Migration helpers
-	AutoMigrate() error
-	DestructiveReset() error
 }

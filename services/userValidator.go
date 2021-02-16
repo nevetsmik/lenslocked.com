@@ -180,7 +180,7 @@ func (uv *userValidator) setRememberIfUnset(user *models.User) error {
 func (uv *userValidator) idGreaterThan(n uint) userValFn {
 	return userValFn(func(user *models.User) error {
 		if user.ID <= n {
-			return ErrIDInvalid
+			return models.ErrIDInvalid
 		}
 		return nil
 	})
@@ -196,7 +196,7 @@ func (uv *userValidator) normalizeEmail(user *models.User) error {
 // Validate an email address exists
 func (uv *userValidator) requireEmail(user *models.User) error {
 	if user.Email == "" {
-		return ErrEmailRequired
+		return models.ErrEmailRequired
 	}
 	return nil
 }
@@ -207,7 +207,7 @@ func (uv *userValidator) emailFormat(user *models.User) error {
 		return nil
 	}
 	if !uv.emailRegex.MatchString(user.Email) {
-		return ErrEmailInvalid
+		return models.ErrEmailInvalid
 	}
 	return nil
 }
@@ -215,7 +215,7 @@ func (uv *userValidator) emailFormat(user *models.User) error {
 // Validate unique email address
 func (uv *userValidator) emailIsAvail(user *models.User) error {
 	existing, err := uv.ByEmail(user.Email)
-	if err == ErrNotFound {
+	if err == models.ErrNotFound {
 		// Email address is available if we don't find
 		// a user with that email address.
 		return nil
@@ -231,7 +231,7 @@ func (uv *userValidator) emailIsAvail(user *models.User) error {
 	// address, so we need to see if this is the same user we
 	// are updating, or if we have a conflict.
 	if user.ID != existing.ID {
-		return ErrEmailTaken
+		return models.ErrEmailTaken
 	}
 	return nil
 }
@@ -242,7 +242,7 @@ func (uv *userValidator) passwordMinLength(user *models.User) error {
 		return nil
 	}
 	if len(user.Password) < 8 {
-		return ErrPasswordTooShort
+		return models.ErrPasswordTooShort
 	}
 	return nil
 }
@@ -250,7 +250,7 @@ func (uv *userValidator) passwordMinLength(user *models.User) error {
 // Validate password is given by user
 func (uv *userValidator) passwordRequired(user *models.User) error {
 	if user.Password == "" {
-		return ErrPasswordRequired
+		return models.ErrPasswordRequired
 	}
 	return nil
 }
@@ -258,7 +258,7 @@ func (uv *userValidator) passwordRequired(user *models.User) error {
 // Validate PasswordHash is always given a value
 func (uv *userValidator) passwordHashRequired(user *models.User) error {
 	if user.PasswordHash == "" {
-		return ErrPasswordRequired
+		return models.ErrPasswordRequired
 	}
 	return nil
 }
@@ -273,7 +273,7 @@ func (uv *userValidator) rememberMinBytes(user *models.User) error {
 		return err
 	}
 	if n < 32 {
-		return ErrRememberTooShort
+		return models.ErrRememberTooShort
 	}
 	return nil
 }
@@ -281,7 +281,7 @@ func (uv *userValidator) rememberMinBytes(user *models.User) error {
 // Validate remember token exists
 func (uv *userValidator) rememberHashRequired(user *models.User) error {
 	if user.RememberHash == "" {
-		return ErrRememberRequired
+		return models.ErrRememberRequired
 	}
 	return nil
 }

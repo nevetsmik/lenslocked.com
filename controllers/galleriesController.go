@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -14,7 +13,10 @@ import (
 )
 
 const (
-	ShowGallery = "show_gallery"
+	IndexGalleries = "index_galleries"
+	ShowGallery    = "show_gallery"
+	EditGallery    = "edit_gallery"
+
 )
 
 type Galleries struct {
@@ -61,9 +63,9 @@ func (g *Galleries) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reconstruct the url using the named ShowGallery route
+	// Reconstruct the url using the named EditGallery route
 	// URL takes the parameter 'id' and gives in value of the gallery ID
-	url, err := g.r.Get(ShowGallery).URL("id", strconv.Itoa(int(gallery.ID)))
+	url, err := g.r.Get(EditGallery).URL("id", strconv.Itoa(int(gallery.ID)))
 	if err != nil {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -158,10 +160,12 @@ func (g *Galleries) Delete(w http.ResponseWriter, r *http.Request) {
 		g.EditView.Render(w, vd)
 		return
 	}
-	// TODO: We will eventually want to redirect to the index
-	// page that lists all galleries this user owns, but for
-	// now a success message will suffice.
-	fmt.Fprintln(w, "successfully deleted!")
+	url, err := g.r.Get(IndexGalleries).URL()
+	if err != nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	http.Redirect(w, r, url.Path, http.StatusFound)
 }
 
 func (g *Galleries) Show(w http.ResponseWriter, r *http.Request) {

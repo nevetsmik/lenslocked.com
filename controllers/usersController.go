@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 
 	"lenslocked.com/interfaces"
@@ -25,6 +26,7 @@ type Users struct {
 	NewView   *views.View
 	LoginView *views.View
 	us        interfaces.UserServiceInt
+	r         *mux.Router
 }
 
 // Struct tags are metadata that can be added to fields of any struct
@@ -45,11 +47,12 @@ type Alert struct {
 	Message string
 }
 
-func NewUsers(us interfaces.UserServiceInt) *Users {
+func NewUsers(us interfaces.UserServiceInt, r *mux.Router) *Users {
 	return &Users{
 		NewView:   views.NewView("bootstrap", "users/new"),
 		LoginView: views.NewView("bootstrap", "users/login"),
 		us:        us,
+		r:         r,
 	}
 }
 
@@ -84,7 +87,12 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
-	http.Redirect(w, r, "/cookietest", http.StatusFound)
+	url, err := u.r.Get(IndexGalleries).URL()
+	if err != nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	http.Redirect(w, r, url.Path, http.StatusFound)
 }
 
 // POST /login
@@ -112,7 +120,12 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		vd.SetAlert(err)
 		u.LoginView.Render(w, vd)
 	}
-	http.Redirect(w, r, "/cookietest", http.StatusFound)
+	url, err := u.r.Get(IndexGalleries).URL()
+	if err != nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	http.Redirect(w, r, url.Path, http.StatusFound)
 }
 
 // signIn is used to sign the given user in via cookies

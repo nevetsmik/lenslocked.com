@@ -27,7 +27,7 @@ func main() {
 
 	r := mux.NewRouter()
 	staticC := controllers.NewStatic()
-	usersC := controllers.NewUsers(services.User)
+	usersC := controllers.NewUsers(services.User, r)
 	galleriesC := controllers.NewGalleries(services.Gallery, r)
 
 	requireUserMw := middleware.RequireUser{
@@ -54,10 +54,10 @@ func main() {
 	r.HandleFunc("/galleries", createGallery).Methods("POST")
 	// Name the route controllers.ShowGallery
 	r.HandleFunc("/galleries/{id:[0-9]+}", galleriesC.Show).Methods("GET").Name(controllers.ShowGallery)
-	r.HandleFunc("/galleries/{id:[0-9]+}/edit", editGallery).Methods("GET")
+	r.HandleFunc("/galleries/{id:[0-9]+}/edit", editGallery).Methods("GET").Name(controllers.EditGallery)
 	r.HandleFunc("/galleries/{id:[0-9]+}/update", updateGallery).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/delete", deleteGallery).Methods("POST")
-	r.Handle("/galleries", indexGallery).Methods("GET")
+	r.Handle("/galleries", indexGallery).Methods("GET").Name(controllers.IndexGalleries)
 	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
 
 	http.ListenAndServe(":3000", r)

@@ -21,6 +21,15 @@ func (gv *galleryValidator) Create(gallery *models.Gallery) error {
 	return gv.GalleryDBInt.Create(gallery)
 }
 
+func (gv *galleryValidator) Update(gallery *models.Gallery) error {
+	err := runGalleryValFns(gallery,
+		gv.userIDRequired,
+		gv.titleRequired)
+	if err != nil {
+		return err
+	}
+	return gv.GalleryDBInt.Update(gallery)
+}
 
 func runGalleryValFns(gallery *models.Gallery, fns ...galleryValFn) error {
 	for _, fn := range fns {

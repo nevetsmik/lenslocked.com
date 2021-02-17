@@ -46,10 +46,14 @@ func main() {
 	r.HandleFunc("/login", usersC.Login).Methods("POST")
 	newGallery := requireUserMw.Apply(galleriesC.New)
 	createGallery := requireUserMw.ApplyFn(galleriesC.Create)
+	editGallery := requireUserMw.ApplyFn(galleriesC.Edit)
+	updateGallery := requireUserMw.ApplyFn(galleriesC.Update)
 	r.Handle("/galleries/new", newGallery).Methods("GET")
 	r.HandleFunc("/galleries", createGallery).Methods("POST")
 	// Name the route controllers.ShowGallery
 	r.HandleFunc("/galleries/{id:[0-9]+}", galleriesC.Show).Methods("GET").Name(controllers.ShowGallery)
+	r.HandleFunc("/galleries/{id:[0-9]+}/edit", editGallery).Methods("GET")
+	r.HandleFunc("/galleries/{id:[0-9]+}/update", updateGallery).Methods("POST")
 	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
 
 	http.ListenAndServe(":3000", r)

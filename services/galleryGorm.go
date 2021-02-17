@@ -25,3 +25,7 @@ func (gg *galleryGorm) ByID(id uint) (*models.Gallery, error) {
 func (gg *galleryGorm) Create(gallery *models.Gallery) error {
 	return gg.db.Create(gallery).Error
 }
+
+func (gg *galleryGorm) Update(gallery *models.Gallery) error {
+	return gg.db.Save(gallery).Error
+}

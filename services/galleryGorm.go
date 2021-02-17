@@ -22,6 +22,15 @@ func (gg *galleryGorm) ByID(id uint) (*models.Gallery, error) {
 	return &gallery, nil
 }
 
+func (gg *galleryGorm) ByUserID (userID uint) ([]models.Gallery, error) {
+	var galleries []models.Gallery
+	db := gg.db.Where("user_id = ?", userID)
+	if err := db.Find(&galleries).Error; err != nil {
+		return nil, err
+	}
+	return galleries, nil
+}
+
 func (gg *galleryGorm) Create(gallery *models.Gallery) error {
 	return gg.db.Create(gallery).Error
 }

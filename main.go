@@ -49,6 +49,7 @@ func main() {
 	editGallery := requireUserMw.ApplyFn(galleriesC.Edit)
 	updateGallery := requireUserMw.ApplyFn(galleriesC.Update)
 	deleteGallery := requireUserMw.ApplyFn(galleriesC.Delete)
+	indexGallery := requireUserMw.ApplyFn(galleriesC.Index)
 	r.Handle("/galleries/new", newGallery).Methods("GET")
 	r.HandleFunc("/galleries", createGallery).Methods("POST")
 	// Name the route controllers.ShowGallery
@@ -56,6 +57,7 @@ func main() {
 	r.HandleFunc("/galleries/{id:[0-9]+}/edit", editGallery).Methods("GET")
 	r.HandleFunc("/galleries/{id:[0-9]+}/update", updateGallery).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/delete", deleteGallery).Methods("POST")
+	r.Handle("/galleries", indexGallery).Methods("GET")
 	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
 
 	http.ListenAndServe(":3000", r)

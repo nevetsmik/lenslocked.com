@@ -9,6 +9,7 @@ import (
 
 	"lenslocked.com/controllers"
 	"lenslocked.com/dbConfig"
+	"lenslocked.com/middleware"
 	"lenslocked.com/services"
 )
 
@@ -28,6 +29,10 @@ func main() {
 	usersC := controllers.NewUsers(services.User)
 	galleriesC := controllers.NewGalleries(services.Gallery)
 
+	requireUserMw := middleware.RequireUser{
+		UserServiceInt: services.User,
+	}
+
 	r := mux.NewRouter()
 	// staticC returns a struct of View structs.
 	// Handle takes a path, and a http.Handler object.
@@ -39,10 +44,11 @@ func main() {
 	r.HandleFunc("/signup", usersC.Create).Methods("POST")
 	r.Handle("/login", usersC.LoginView).Methods("GET")
 	r.HandleFunc("/login", usersC.Login).Methods("POST")
-	r.Handle("/galleries/new", galleriesC.New).Methods("GET")
-	r.HandleFunc("/galleries", galleriesC.Create).Methods("POST")
+	newGallery := requireUserMw.Apply(galleriesC.New)
+	createGallery := requireUserMw.ApplyFn(galleriesC.Create)
+	r.Handle("/galleries/new", newGallery).Methods("GET")
+	r.HandleFunc("/galleries", createGallery).Methods("POST")
 	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
-
 
 	http.ListenAndServe(":3000", r)
 }

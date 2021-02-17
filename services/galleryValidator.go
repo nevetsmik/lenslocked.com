@@ -31,6 +31,15 @@ func (gv *galleryValidator) Update(gallery *models.Gallery) error {
 	return gv.GalleryDBInt.Update(gallery)
 }
 
+func (gv *galleryValidator) Delete(id uint) error {
+	var gallery models.Gallery
+	gallery.ID = id
+	if err := runGalleryValFns(&gallery, gv.nonZeroID); err != nil {
+		return err
+	}
+	return gv.GalleryDBInt.Delete(gallery.ID)
+}
+
 func runGalleryValFns(gallery *models.Gallery, fns ...galleryValFn) error {
 	for _, fn := range fns {
 		if err := fn(gallery); err != nil {
@@ -53,3 +62,11 @@ func (gv *galleryValidator) titleRequired(g *models.Gallery) error {
 	}
 	return nil
 }
+
+func (gv *galleryValidator) nonZeroID(gallery *models.Gallery) error {
+	if gallery.ID <= 0 {
+		return models.ErrIDInvalid
+	}
+	return nil
+}
+

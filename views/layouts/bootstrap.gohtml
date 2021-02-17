@@ -15,7 +15,7 @@
         {{ if .Alert }}
             {{ template "alert" .Alert }}
         {{ end }}
-        {{ template "yield" . }}
+        {{ template "yield" .Yield }}
 
         {{ template "footer" }}
     </div>

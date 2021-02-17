@@ -25,15 +25,15 @@ func main() {
 	services.AutoMigrate()
 	//services.DestructiveReset()
 
+	r := mux.NewRouter()
 	staticC := controllers.NewStatic()
 	usersC := controllers.NewUsers(services.User)
-	galleriesC := controllers.NewGalleries(services.Gallery)
+	galleriesC := controllers.NewGalleries(services.Gallery, r)
 
 	requireUserMw := middleware.RequireUser{
 		UserServiceInt: services.User,
 	}
 
-	r := mux.NewRouter()
 	// staticC returns a struct of View structs.
 	// Handle takes a path, and a http.Handler object.
 	// Since View has a ServeHTTP method and implements the http.Handler interfaces, so the View type can be passed as
@@ -48,6 +48,8 @@ func main() {
 	createGallery := requireUserMw.ApplyFn(galleriesC.Create)
 	r.Handle("/galleries/new", newGallery).Methods("GET")
 	r.HandleFunc("/galleries", createGallery).Methods("POST")
+	// Name the route controllers.ShowGallery
+	r.HandleFunc("/galleries/{id:[0-9]+}", galleriesC.Show).Methods("GET").Name(controllers.ShowGallery)
 	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
 
 	http.ListenAndServe(":3000", r)

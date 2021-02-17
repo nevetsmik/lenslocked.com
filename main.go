@@ -30,9 +30,12 @@ func main() {
 	usersC := controllers.NewUsers(services.User, r)
 	galleriesC := controllers.NewGalleries(services.Gallery, r)
 
-	requireUserMw := middleware.RequireUser{
-		UserServiceInt: services.User,
-	}
+	// Redirects to /login if a user is not signed in
+	requireUserMw := middleware.RequireUser{}
+
+	// Writes user to context if remember token is found
+	// Moves to next(w, r) regardless
+	userMw := middleware.User{UserServiceInt: services.User}
 
 	// staticC returns a struct of View structs.
 	// Handle takes a path, and a http.Handler object.
@@ -60,5 +63,5 @@ func main() {
 	r.Handle("/galleries", indexGallery).Methods("GET").Name(controllers.IndexGalleries)
 	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
 
-	http.ListenAndServe(":3000", r)
+	http.ListenAndServe(":3000", userMw.Apply(r))
 }

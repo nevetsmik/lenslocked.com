@@ -58,7 +58,7 @@ func NewUsers(us interfaces.UserServiceInt, r *mux.Router) *Users {
 
 // GET /signup
 func (u *Users) New(w http.ResponseWriter, r *http.Request) {
-	u.NewView.Render(w, nil)
+	u.NewView.Render(w, r, nil)
 }
 
 // POST /signup
@@ -69,7 +69,7 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		// Errors are possible here. Display AlertMsgGeneric message
 		vd.SetAlert(err)
-		u.NewView.Render(w, vd)
+		u.NewView.Render(w, r, vd)
 		return
 	}
 	user := models.User{
@@ -79,7 +79,7 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := u.us.Create(&user); err != nil {
 		vd.SetAlert(err)
-		u.NewView.Render(w, vd)
+		u.NewView.Render(w, r, vd)
 		return
 	}
 	err := u.signIn(w, &user)
@@ -101,7 +101,7 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	form := LoginForm{}
 	if err := parseForm(r, &form); err != nil {
 		vd.SetAlert(err)
-		u.LoginView.Render(w, vd)
+		u.LoginView.Render(w, r, vd)
 
 	}
 	user, err := u.us.Authenticate(form.Email, form.Password)
@@ -112,13 +112,13 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		default:
 			vd.SetAlert(err)
 		}
-		u.LoginView.Render(w, vd)
+		u.LoginView.Render(w, r, vd)
 		return
 	}
 	err = u.signIn(w, user)
 	if err != nil {
 		vd.SetAlert(err)
-		u.LoginView.Render(w, vd)
+		u.LoginView.Render(w, r, vd)
 	}
 	url, err := u.r.Get(IndexGalleries).URL()
 	if err != nil {

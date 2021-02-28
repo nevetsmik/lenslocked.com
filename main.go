@@ -67,8 +67,12 @@ func main() {
 	imageHandler := http.FileServer(http.Dir("./images/"))
 	// http.StripPrefix acts as middleware and removes "/images/" before passing to imageHandler
 	r.PathPrefix("/images/").Handler(http.StripPrefix("/images/", imageHandler))
-	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
 	r.HandleFunc("/galleries/{id:[0-9]+}/images/{filename}/delete", deleteImage).Methods("POST")
 
+	assetHandler := http.FileServer(http.Dir("./assets/"))
+	assetHandler = http.StripPrefix("/assets/", assetHandler)
+	r.PathPrefix("/assets/").Handler(assetHandler)
+
+	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
 	http.ListenAndServe(":3000", userMw.Apply(r))
 }

@@ -28,7 +28,7 @@ func main() {
 	r := mux.NewRouter()
 	staticC := controllers.NewStatic()
 	usersC := controllers.NewUsers(services.User, r)
-	galleriesC := controllers.NewGalleries(services.Gallery, r)
+	galleriesC := controllers.NewGalleries(services.Gallery, services.Image, r)
 
 	// Redirects to /login if a user is not signed in
 	requireUserMw := middleware.RequireUser{}
@@ -53,6 +53,8 @@ func main() {
 	updateGallery := requireUserMw.ApplyFn(galleriesC.Update)
 	deleteGallery := requireUserMw.ApplyFn(galleriesC.Delete)
 	indexGallery := requireUserMw.ApplyFn(galleriesC.Index)
+	uploadImage := requireUserMw.ApplyFn(galleriesC.ImageUpload)
+	deleteImage := requireUserMw.ApplyFn(galleriesC.ImageDelete)
 	r.Handle("/galleries/new", newGallery).Methods("GET")
 	r.HandleFunc("/galleries", createGallery).Methods("POST")
 	// Name the route controllers.ShowGallery
@@ -61,7 +63,12 @@ func main() {
 	r.HandleFunc("/galleries/{id:[0-9]+}/update", updateGallery).Methods("POST")
 	r.HandleFunc("/galleries/{id:[0-9]+}/delete", deleteGallery).Methods("POST")
 	r.Handle("/galleries", indexGallery).Methods("GET").Name(controllers.IndexGalleries)
+	r.HandleFunc("/galleries/{id:[0-9]+}/images", uploadImage).Methods("POST")
+	imageHandler := http.FileServer(http.Dir("./images/"))
+	// http.StripPrefix acts as middleware and removes "/images/" before passing to imageHandler
+	r.PathPrefix("/images/").Handler(http.StripPrefix("/images/", imageHandler))
 	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
+	r.HandleFunc("/galleries/{id:[0-9]+}/images/{filename}/delete", deleteImage).Methods("POST")
 
 	http.ListenAndServe(":3000", userMw.Apply(r))
 }

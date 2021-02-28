@@ -10,6 +10,7 @@ import (
 type Services struct {
 	Gallery interfaces.GalleryServiceInt
 	User    interfaces.UserServiceInt
+	Image   interfaces.ImageServiceInt
 	db      *gorm.DB
 }
 
@@ -24,6 +25,7 @@ func NewServices(connectionInfo string) (*Services, error) {
 	return &Services{
 		User:    NewUserService(db),
 		Gallery: NewGalleryService(db),
+		Image:   NewImageService(),
 		db:      db,
 	}, nil
 }

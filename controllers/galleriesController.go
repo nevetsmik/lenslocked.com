@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -13,9 +14,10 @@ import (
 )
 
 const (
-	IndexGalleries = "index_galleries"
-	ShowGallery    = "show_gallery"
-	EditGallery    = "edit_gallery"
+	IndexGalleries  = "index_galleries"
+	ShowGallery     = "show_gallery"
+	EditGallery     = "edit_gallery"
+	maxMultipartMem = 1 << 20 // 1 megabyte
 )
 
 type Galleries struct {
@@ -24,6 +26,7 @@ type Galleries struct {
 	EditView  *views.View
 	IndexView *views.View
 	gs        interfaces.GalleryServiceInt
+	is        interfaces.ImageServiceInt
 	r         *mux.Router
 }
 
@@ -31,13 +34,14 @@ type GalleryForm struct {
 	Title string `schema:"title"`
 }
 
-func NewGalleries(gs interfaces.GalleryServiceInt, r *mux.Router) *Galleries {
+func NewGalleries(gs interfaces.GalleryServiceInt, is interfaces.ImageServiceInt, r *mux.Router) *Galleries {
 	return &Galleries{
 		New:       views.NewView("bootstrap", "galleries/new"),
 		ShowView:  views.NewView("bootstrap", "galleries/show"),
 		EditView:  views.NewView("bootstrap", "galleries/edit"),
 		IndexView: views.NewView("bootstrap", "galleries/index"),
 		gs:        gs,
+		is:        is,
 		r:         r,
 	}
 }
@@ -167,6 +171,59 @@ func (g *Galleries) Delete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url.Path, http.StatusFound)
 }
 
+// POST /galleries/:id/images
+func (g *Galleries) ImageUpload(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.galleryByID(w, r)
+	if err != nil {
+		return
+	}
+	user := context.User(r.Context())
+	if gallery.UserID != user.ID {
+		http.Error(w, "Gallery not found", http.StatusNotFound)
+		return
+	}
+
+	var vd views.Data
+	vd.Yield = gallery
+	err = r.ParseMultipartForm(maxMultipartMem)
+	if err != nil {
+		vd.SetAlert(err)
+		g.EditView.Render(w, r, vd)
+		return
+	}
+
+	// multipart.Form is defined as:
+	// type Form struct {
+	//	Value map[string][]string
+	//	File  map[string][]*FileHeader
+	// }
+	// The File field stores a map where each key maps to the name attribute of the HTML input tag and the value of each key is a slice of FileHeaders8 which we can use to access each uploaded file.
+	files := r.MultipartForm.File["images"]
+	for _, f := range files {
+		// Open the uploaded file
+		file, err := f.Open()
+		if err != nil {
+			vd.SetAlert(err)
+			g.EditView.Render(w, r, vd)
+			return
+		}
+		defer file.Close()
+
+		err = g.is.Create(gallery.ID, file, f.Filename)
+		if err != nil {
+			vd.SetAlert(err)
+			g.EditView.Render(w, r, vd)
+			return
+		}
+	}
+
+	vd.Alert = &views.Alert{
+		Level:   views.AlertLvlSuccess,
+		Message: "Images successfully uploaded!",
+	}
+	g.EditView.Render(w, r, vd)
+}
+
 func (g *Galleries) Show(w http.ResponseWriter, r *http.Request) {
 	gallery, err := g.galleryByID(w, r)
 	if err != nil {
@@ -196,5 +253,45 @@ func (g *Galleries) galleryByID(w http.ResponseWriter, r *http.Request) (*models
 		}
 		return nil, err
 	}
+	images, _ := g.is.ByGalleryID(gallery.ID)
+	gallery.Images = images
 	return gallery, nil
+}
+
+// POST /galleries/:id/images/:filename/delete
+func (g *Galleries) ImageDelete(w http.ResponseWriter, r *http.Request) {
+	gallery, err := g.galleryByID(w, r)
+	if err != nil {
+		return
+	}
+	user := context.User(r.Context())
+	if gallery.UserID != user.ID {
+		http.Error(w, "You do not have permission to edit this gallery or image", http.StatusForbidden)
+		return
+	}
+	// Get the filename from the path
+	filename := mux.Vars(r)["filename"]
+	// Build the Image model
+	i := models.Image{
+		Filename:  filename,
+		GalleryID: gallery.ID,
+	}
+	// Try to delete the image.
+	err = g.is.Delete(&i)
+	if err != nil {
+		// Render the edit page with any errors.
+		var vd views.Data
+		vd.Yield = gallery
+		vd.SetAlert(err)
+		g.EditView.Render(w, r, vd)
+		return
+	}
+	// If all goes well, redirect to the edit gallery page.
+	url, err := g.r.Get(EditGallery).URL("id", fmt.Sprintf("%v", gallery.ID))
+	if err != nil {
+		http.Redirect(w, r, "/galleries", http.StatusFound)
+		return
+	}
+	http.Redirect(w, r, url.Path, http.StatusFound)
+
 }

@@ -9,17 +9,16 @@ import (
 	_ "github.com/lib/pq"
 
 	"lenslocked.com/controllers"
-	"lenslocked.com/dbConfig"
 	"lenslocked.com/middleware"
 	"lenslocked.com/rand"
 	"lenslocked.com/services"
 )
 
 func main() {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable",
-		dbConfig.Host, dbConfig.Port, dbConfig.User, dbConfig.Dbname)
+	cfg := DefaultConfig()
+	dbCfg := DefaultPostgresConfig()
 
-	services, err := services.NewServices(psqlInfo)
+	services, err := services.NewServices(dbCfg.Dialect(), dbCfg.ConnectionInfo())
 	if err != nil {
 		panic(err)
 	}
@@ -39,13 +38,12 @@ func main() {
 	// Moves to next(w, r) regardless
 	userMw := middleware.User{UserServiceInt: services.User}
 
-	isProd := false
 	b, err := rand.Bytes(32)
 	if err != nil {
 		panic(err)
 	}
 	// csrfMw will check for a valid CSRF token any time a form is submitted or our server gets an HTTP POST web request
-	csrfMw := csrf.Protect(b, csrf.Secure(isProd))
+	csrfMw := csrf.Protect(b, csrf.Secure(cfg.IsProd()))
 
 	// staticC returns a struct of View structs.
 	// Handle takes a path, and a http.Handler object.
@@ -84,5 +82,6 @@ func main() {
 	r.PathPrefix("/assets/").Handler(assetHandler)
 
 	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
-	http.ListenAndServe(":3000", csrfMw(userMw.Apply(r)))
+	fmt.Printf("Starting the server on :%d...\n", cfg.Port)
+	http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), csrfMw(userMw.Apply(r)))
 }

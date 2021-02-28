@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 
 	"lenslocked.com/context"
 	"lenslocked.com/interfaces"
@@ -40,6 +41,16 @@ func (mw *User) Apply(next http.Handler) http.HandlerFunc {
 // show a Galleries link in the navbar when a user is already logged in
 func (mw *User) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		// If the user is requesting a static asset or image
+		// we will not need to lookup the current user so we skip
+		// doing that.
+		if strings.HasPrefix(path, "/assets/") ||
+			strings.HasPrefix(path, "/images/") {
+			next(w, r)
+			return
+		}
+		
 		// We want to return a dynamically created
 		// func(http.ResponseWriter, *http.Request)
 		// but we also need to convert it into an

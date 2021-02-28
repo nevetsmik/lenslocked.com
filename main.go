@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 
 	"lenslocked.com/controllers"
 	"lenslocked.com/dbConfig"
 	"lenslocked.com/middleware"
+	"lenslocked.com/rand"
 	"lenslocked.com/services"
 )
 
@@ -36,6 +38,14 @@ func main() {
 	// Writes user to context if remember token is found
 	// Moves to next(w, r) regardless
 	userMw := middleware.User{UserServiceInt: services.User}
+
+	isProd := false
+	b, err := rand.Bytes(32)
+	if err != nil {
+		panic(err)
+	}
+	// csrfMw will check for a valid CSRF token any time a form is submitted or our server gets an HTTP POST web request
+	csrfMw := csrf.Protect(b, csrf.Secure(isProd))
 
 	// staticC returns a struct of View structs.
 	// Handle takes a path, and a http.Handler object.
@@ -74,5 +84,5 @@ func main() {
 	r.PathPrefix("/assets/").Handler(assetHandler)
 
 	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
-	http.ListenAndServe(":3000", userMw.Apply(r))
+	http.ListenAndServe(":3000", csrfMw(userMw.Apply(r)))
 }

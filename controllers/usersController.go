@@ -6,8 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/schema"
-
 	"lenslocked.com/interfaces"
 	"lenslocked.com/models"
 	"lenslocked.com/rand"
@@ -163,16 +161,4 @@ func (u *Users) CookieTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintln(w, user)
-}
-
-func parseForm(r *http.Request, dst interface{}) error {
-	// ParseForm parses a form on a request and stores the data in PostForm in the request
-	if err := r.ParseForm(); err != nil {
-		return err
-	}
-	dec := schema.NewDecoder()
-	if err := dec.Decode(dst, r.PostForm); err != nil {
-		return err
-	}
-	return nil
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 
@@ -15,8 +16,11 @@ import (
 )
 
 func main() {
-	cfg := DefaultConfig()
-	dbCfg := DefaultPostgresConfig()
+	// "go run *.go -prod" means that a config.json file must be provided
+	boolPtr := flag.Bool("prod", false, "Provide this flag in production. This ensures that a config.json file is provided before the application starts.")
+	flag.Parse()
+	cfg := LoadConfig(*boolPtr)
+	dbCfg := cfg.Database
 
 	services, err := services.NewServices(
 		services.WithGorm(dbCfg.Dialect(), dbCfg.ConnectionInfo()),

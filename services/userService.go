@@ -14,14 +14,12 @@ import (
 // Embeds a UserDB interface
 type userService struct {
 	interfaces.UserDBInt
+	pepper string
 }
 
-var userPwPepper = "secret-random-string"
-var hmacSecretKey = "secret-hmac-key"
-
-func NewUserService(db *gorm.DB) *userService {
+func NewUserService(db *gorm.DB, pepper, hmacKey string) *userService {
 	ug := &UserGorm{db}
-	hmac := hash.NewHMAC(hmacSecretKey)
+	hmac := hash.NewHMAC(hmacKey)
 	// https://eli.thegreenplace.net/2020/embedding-in-go-part-3-interfaces-in-structs/
 	// UserDBInt field for UserValidator is initialized to ug, a UserGorm service (struct) that implements the UserDBInt interface.
 	// userService embeds the UserDBInt interface and instantiates uv, a userValidator service (struct)
@@ -30,9 +28,10 @@ func NewUserService(db *gorm.DB) *userService {
 	//	hmac:      hmac,
 	//	UserDBInt: ug,
 	//}
-	uv := NewUserValidator(ug, hmac)
+	uv := NewUserValidator(ug, hmac, pepper)
 	return &userService{
 		UserDBInt: uv,
+		pepper:    pepper,
 	}
 }
 
@@ -44,7 +43,7 @@ func (us *userService) Authenticate(email, password string) (*models.User, error
 
 	err = bcrypt.CompareHashAndPassword(
 		[]byte(foundUser.PasswordHash),
-		[]byte(password+userPwPepper))
+		[]byte(password+us.pepper))
 	switch err {
 	case nil:
 		return foundUser, nil

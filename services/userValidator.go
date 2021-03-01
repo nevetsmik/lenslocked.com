@@ -18,15 +18,17 @@ type userValidator struct {
 	// So to enable interface chaining from a uv to ug, the UserDBInt field will be instantiated to a ug
 	interfaces.UserDBInt
 	hmac       hash.HMAC
+	pepper     string
 	emailRegex *regexp.Regexp
 }
 
 type userValFn func(*models.User) error
 
-func NewUserValidator(udb interfaces.UserDBInt, hmac hash.HMAC) *userValidator {
+func NewUserValidator(udb interfaces.UserDBInt, hmac hash.HMAC, pepper string) *userValidator {
 	return &userValidator{
 		UserDBInt: udb,
 		hmac:      hmac,
+		pepper:    pepper,
 		emailRegex: regexp.MustCompile(
 			`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,16}$`),
 	}
@@ -141,7 +143,7 @@ func (uv *userValidator) bcryptPassword(user *models.User) error {
 		return nil
 	}
 
-	pwBytes := []byte(user.Password + userPwPepper)
+	pwBytes := []byte(user.Password + uv.pepper)
 	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes,
 		bcrypt.DefaultCost)
 	if err != nil {

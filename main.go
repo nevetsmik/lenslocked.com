@@ -18,7 +18,13 @@ func main() {
 	cfg := DefaultConfig()
 	dbCfg := DefaultPostgresConfig()
 
-	services, err := services.NewServices(dbCfg.Dialect(), dbCfg.ConnectionInfo())
+	services, err := services.NewServices(
+		services.WithGorm(dbCfg.Dialect(), dbCfg.ConnectionInfo()),
+		services.WithLogMode(!cfg.IsProd()),
+		services.WithUser(cfg.Pepper, cfg.HMACKey),
+		services.WithGallery(),
+		services.WithImage(),
+	)
 	if err != nil {
 		panic(err)
 	}

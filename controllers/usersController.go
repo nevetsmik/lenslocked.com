@@ -93,7 +93,12 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-	http.Redirect(w, r, url.Path, http.StatusFound)
+	alert := views.Alert{
+		Level:   views.AlertLvlSuccess,
+		Message: "Welcome to LensLocked.com!",
+	}
+	// Redirect with alert
+	views.RedirectAlert(w, r, url.Path, http.StatusFound, alert)
 }
 
 // POST /login

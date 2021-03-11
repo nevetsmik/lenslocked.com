@@ -79,6 +79,12 @@ func (v *View) Render(w http.ResponseWriter, r *http.Request, data interface{}) 
 		}
 	}
 
+	// Lookup the alert and assign it if one is persisted
+	if alert := getAlert(r); alert != nil {
+		vd.Alert = alert
+		clearAlert(w)
+	}
+
 	vd.User = context.User(r.Context())
 	// Handle errors when rendering views by writing to a temp buffer and then copy to the response after the render
 	// completes

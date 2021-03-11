@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
+
+	"lenslocked.com/context"
 	"lenslocked.com/interfaces"
 	"lenslocked.com/models"
 	"lenslocked.com/rand"
@@ -124,6 +127,28 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, url.Path, http.StatusFound)
+}
+
+// Logout is used to delete a user's session cookie and invalidate their current remember token, which will sign the current user out.
+// POST /logout
+func (u *Users) Logout(w http.ResponseWriter, r *http.Request) {
+	// First expire the user's cookie
+	cookie := http.Cookie{
+		Name:     "remember_token",
+		Value:    "",
+		Expires:  time.Now(),
+		HttpOnly: true,
+	}
+	http.SetCookie(w, &cookie)
+	// Then we update the user with a new remember token
+	user := context.User(r.Context())
+	// We are ignoring errors for now because they are unlikely, and even if they do occur we can't recover
+	// now that the user doesn't have a valid cookie
+	token, _ := rand.RememberToken()
+	user.Remember = token
+	u.us.Update(user)
+	// Finally send the user to the home page
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 // signIn is used to sign the given user in via cookies

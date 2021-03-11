@@ -16,18 +16,27 @@
                 <ul class="nav navbar-nav">
                     <li><a href="/">Home</a></li>
                     <li><a href="/contact">Contact</a></li>
-                    {{if .User}}
+                    {{if isLoggedIn}}
                         <li><a href="/galleries">Galleries</a></li>
                     {{end}}
 
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
-                    <li><a href="/signup">Sign Up</a></li>
-                </ul>
-                <ul class="nav navbar-nav navbar-right">
-                    <li><a href="/login">Log In</a></li>
+                    {{if isLoggedIn}}
+                        <li>{{template "logoutForm"}}</li>
+                    {{else}}
+                        <li><a href="/signup">Sign Up</a></li>
+                        <li><a href="/login">Log In</a></li>
+                    {{end}}
                 </ul>
             </div>
         </div>
     </nav>
+{{end}}
+
+{{define "logoutForm"}}
+    <form class="navbar-form navbar-left" action="/logout" method="POST">
+        {{csrfField}}
+        <button type="submit" class="btn btn-default">Log out</button>
+    </form>
 {{end}}

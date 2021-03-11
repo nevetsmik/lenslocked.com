@@ -86,6 +86,9 @@ func main() {
 	// http.StripPrefix acts as middleware and removes "/images/" before passing to imageHandler
 	r.PathPrefix("/images/").Handler(http.StripPrefix("/images/", imageHandler))
 	r.HandleFunc("/galleries/{id:[0-9]+}/images/{filename}/delete", deleteImage).Methods("POST")
+	logout := requireUserMw.ApplyFn(usersC.Logout)
+	r.Handle("/logout", logout).Methods("POST")
+
 
 	assetHandler := http.FileServer(http.Dir("./assets/"))
 	assetHandler = http.StripPrefix("/assets/", assetHandler)

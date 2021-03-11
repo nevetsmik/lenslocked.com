@@ -41,6 +41,9 @@ func NewView(layout string, files ...string) *View {
 		"pathEscape": func(s string) string {
 			return url.PathEscape(s)
 		},
+		"isLoggedIn": func() bool {
+			return false
+		},
 		// Once we have our template with a function we are going to pass in files
 		// to parse, much like we were previously.
 	}).ParseFiles(files...)
@@ -89,6 +92,12 @@ func (v *View) Render(w http.ResponseWriter, r *http.Request, data interface{}) 
 			// We can then create this closure that returns the csrfField for
 			// any templates that need access to it.
 			return csrfField
+		},
+		"isLoggedIn": func() bool {
+			if vd.User != nil {
+				return true
+			}
+			return false
 		},
 	})
 	// Then we continue to execute the template just like before.

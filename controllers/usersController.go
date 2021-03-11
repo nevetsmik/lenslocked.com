@@ -59,13 +59,18 @@ func NewUsers(us interfaces.UserServiceInt, r *mux.Router) *Users {
 
 // GET /signup
 func (u *Users) New(w http.ResponseWriter, r *http.Request) {
-	u.NewView.Render(w, r, nil)
+	var form SignupForm
+	// Parse url query params for form
+	// E.g., http://localhost:3000/signup?email=michael%40dundermifflin.com
+	parseURLParams(r, &form)
+	u.NewView.Render(w, r, form)
 }
 
 // POST /signup
 func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 	var vd views.Data
 	var form SignupForm
+	vd.Yield = &form // Persist form data
 	if err := parseForm(r, &form); err != nil {
 		log.Println(err)
 		// Errors are possible here. Display AlertMsgGeneric message

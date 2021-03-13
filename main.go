@@ -8,7 +8,6 @@ import (
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
-
 	"lenslocked.com/controllers"
 	"lenslocked.com/middleware"
 	"lenslocked.com/rand"
@@ -21,6 +20,8 @@ func main() {
 	flag.Parse()
 	cfg := LoadConfig(*boolPtr)
 	dbCfg := cfg.Database
+	//mgCfg := cfg.Mailgun
+	//mgClient := mailgun.NewMailgun(mgCfg.Domain, mgCfg.APIKey, mgCfg.PublicAPIKey)
 
 	services, err := services.NewServices(
 		services.WithGorm(dbCfg.Dialect(), dbCfg.ConnectionInfo()),
@@ -88,7 +89,6 @@ func main() {
 	r.HandleFunc("/galleries/{id:[0-9]+}/images/{filename}/delete", deleteImage).Methods("POST")
 	logout := requireUserMw.ApplyFn(usersC.Logout)
 	r.Handle("/logout", logout).Methods("POST")
-
 
 	assetHandler := http.FileServer(http.Dir("./assets/"))
 	assetHandler = http.StripPrefix("/assets/", assetHandler)

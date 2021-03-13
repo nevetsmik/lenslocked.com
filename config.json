@@ -8,5 +8,11 @@
     "port": 5432,
     "user": "postgres",
     "name": "lenslocked_dev"
+  },
+  "mailgun": {
+    "api_key": "key-acd5d8e879870f2020feb218f42565d0",
+    "public_api_key": "pubkey-66c80a5e785faffe3f86ff864465cc37",
+    "domain": "https://api.mailgun.net/v3/sandbox1c8247ca4a824056aff62755c3e04458.mailgun.org"
   }
+
 }

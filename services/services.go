@@ -70,11 +70,11 @@ func (s *Services) Close() error {
 }
 
 func (s *Services) AutoMigrate() error {
-	return s.db.AutoMigrate(&models.User{}, &models.Gallery{}).Error
+	return s.db.AutoMigrate(&models.User{}, &models.Gallery{}, &models.PwReset{}).Error
 }
 
 func (s *Services) DestructiveReset() error {
-	err := s.db.DropTableIfExists(&models.User{}, &models.Gallery{}).Error
+	err := s.db.DropTableIfExists(&models.User{}, &models.Gallery{}, &models.PwReset{}).Error
 	if err != nil {
 		return err
 	}

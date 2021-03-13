@@ -9,5 +9,5 @@ require (
 	github.com/jinzhu/gorm v1.9.16
 	github.com/lib/pq v1.1.1
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	gopkg.in/mailgun/mailgun-go.v1 v1.1.1 // indirect
+	gopkg.in/mailgun/mailgun-go.v1 v1.1.1
 )

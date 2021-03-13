@@ -34,4 +34,6 @@ var (
 	ErrUserIDRequired    ModelError = "models: user ID is required"
 	// gallery
 	ErrTitleRequired ModelError = "models: title is required"
+	// pwReset
+	ErrTokenInvalid ModelError = "models: token provided is not valid"
 )

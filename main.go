@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"lenslocked.com/email"
 	"net/http"
 
 	"github.com/gorilla/csrf"
@@ -20,8 +21,11 @@ func main() {
 	flag.Parse()
 	cfg := LoadConfig(*boolPtr)
 	dbCfg := cfg.Database
-	//mgCfg := cfg.Mailgun
-	//mgClient := mailgun.NewMailgun(mgCfg.Domain, mgCfg.APIKey, mgCfg.PublicAPIKey)
+	mgCfg := cfg.Mailgun
+	emailer := email.NewClient(
+		email.WithSender("Lenslocked.com Support", "support@"+mgCfg.Domain),
+		email.WithMailgun(mgCfg.Domain, mgCfg.APIKey, mgCfg.PublicAPIKey),
+	)
 
 	services, err := services.NewServices(
 		services.WithGorm(dbCfg.Dialect(), dbCfg.ConnectionInfo()),
@@ -39,7 +43,7 @@ func main() {
 
 	r := mux.NewRouter()
 	staticC := controllers.NewStatic()
-	usersC := controllers.NewUsers(services.User, r)
+	usersC := controllers.NewUsers(services.User, r, emailer)
 	galleriesC := controllers.NewGalleries(services.Gallery, services.Image, r)
 
 	// Redirects to /login if a user is not signed in
@@ -89,6 +93,11 @@ func main() {
 	r.HandleFunc("/galleries/{id:[0-9]+}/images/{filename}/delete", deleteImage).Methods("POST")
 	logout := requireUserMw.ApplyFn(usersC.Logout)
 	r.Handle("/logout", logout).Methods("POST")
+
+	r.Handle("/forgot", usersC.ForgotPwView).Methods("GET")
+	r.HandleFunc("/forgot", usersC.InitiateReset).Methods("POST")
+	r.HandleFunc("/reset", usersC.ResetPw).Methods("GET")
+	r.HandleFunc("/reset", usersC.CompleteReset).Methods("POST")
 
 	assetHandler := http.FileServer(http.Dir("./assets/"))
 	assetHandler = http.StripPrefix("/assets/", assetHandler)
